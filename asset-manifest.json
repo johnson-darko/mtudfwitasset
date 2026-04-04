@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/REPO_NAME/static/js/main.5134c013.js",
+    "index.html": "/REPO_NAME/index.html",
+    "main.5134c013.js.map": "/REPO_NAME/static/js/main.5134c013.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.5134c013.js"
+  ]
+}
