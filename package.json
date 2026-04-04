@@ -2,7 +2,7 @@
   "name": "mtuassets",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://YOUR_GITHUB_USERNAME.github.io/REPO_NAME",
+  "homepage": "https://johnson-darko.github.io/mtudfwitasset",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

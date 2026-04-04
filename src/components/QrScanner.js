@@ -26,35 +26,31 @@ const QrScanner = () => {
       const qrRegionId = 'qr-reader';
       html5QrCodeRef.current = new Html5Qrcode(qrRegionId);
       try {
-        const cameras = await Html5Qrcode.getCameras();
-        if (cameras && cameras.length && isMounted) {
-          await html5QrCodeRef.current.start(
-            cameras[0].id,
-            { fps: 10, qrbox: 250 },
-            async (decodedText) => {
-              if (decodedText && step === 1) {
-                setScannedId(decodedText);
-                setStep(2);
-                setScannerRunning(false);
-                await html5QrCodeRef.current.stop().catch(() => {});
-                // Fetch asset info
-                const docRef = doc(db, 'assets', decodedText);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                  setAsset({ id: docSnap.id, ...docSnap.data() });
-                } else {
-                  setMessage('Asset not found.');
-                }
+        // Always prefer the environment (back) camera on mobile
+        await html5QrCodeRef.current.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: 250 },
+          async (decodedText) => {
+            if (decodedText && step === 1) {
+              setScannedId(decodedText);
+              setStep(2);
+              setScannerRunning(false);
+              await html5QrCodeRef.current.stop().catch(() => {});
+              // Fetch asset info
+              const docRef = doc(db, 'assets', decodedText);
+              const docSnap = await getDoc(docRef);
+              if (docSnap.exists()) {
+                setAsset({ id: docSnap.id, ...docSnap.data() });
+              } else {
+                setMessage('Asset not found.');
               }
-            },
-            (errorMessage) => {
-              // Optionally handle scan errors
             }
-          );
-          setScannerRunning(true);
-        } else {
-          setMessage('No camera found.');
-        }
+          },
+          (errorMessage) => {
+            // Optionally handle scan errors
+          }
+        );
+        setScannerRunning(true);
       } catch (err) {
         setMessage('Camera error: ' + err.message);
       }
