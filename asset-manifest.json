@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/REPO_NAME/static/js/main.5134c013.js",
-    "index.html": "/REPO_NAME/index.html",
-    "main.5134c013.js.map": "/REPO_NAME/static/js/main.5134c013.js.map"
+    "main.js": "/mtudfwitasset/static/js/main.3aeaba3a.js",
+    "index.html": "/mtudfwitasset/index.html",
+    "main.3aeaba3a.js.map": "/mtudfwitasset/static/js/main.3aeaba3a.js.map"
   },
   "entrypoints": [
-    "static/js/main.5134c013.js"
+    "static/js/main.3aeaba3a.js"
   ]
 }
