@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
+// import { QRCodeCanvas } from 'qrcode.react';
 import { db } from '../firebase';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
 
 
@@ -109,6 +109,49 @@ const badgeStyle = (qty) => ({
 
 const ADMIN_EMAIL = "johnsondarko365@gmail.com";
 const AssetList = ({ assets, setAssets, userEmail }) => {
+  // ...existing code...
+  // Add asset creation logic using 4-digit code as document ID
+  const [newAsset, setNewAsset] = useState({ name: '', quantity: '', room: '', rack: '' });
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleAddChange = e => {
+    setNewAsset({ ...newAsset, [e.target.name]: e.target.value });
+  };
+
+  // Helper to generate a unique 4-digit code
+  const generateUniqueCode = async () => {
+    let code;
+    let exists = true;
+    while (exists) {
+      code = Math.floor(1000 + Math.random() * 9000).toString();
+      const docRef = doc(db, 'assets', code);
+      const docSnap = await getDoc(docRef);
+      exists = docSnap.exists();
+    }
+    return code;
+  };
+
+  const handleAddSubmit = async e => {
+    e.preventDefault();
+    if (!newAsset.name || !newAsset.quantity || !newAsset.room || !newAsset.rack) {
+      alert('Fill all fields.');
+      return;
+    }
+    try {
+      const code = await generateUniqueCode();
+      await setDoc(doc(db, 'assets', code), {
+        name: newAsset.name,
+        quantity: Number(newAsset.quantity),
+        room: newAsset.room,
+        rack: newAsset.rack,
+        code
+      });
+      setShowAddModal(false);
+      setNewAsset({ name: '', quantity: '', room: '', rack: '' });
+    } catch (err) {
+      alert('Error adding asset: ' + err.message);
+    }
+  };
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState('asc');
@@ -241,7 +284,53 @@ const AssetList = ({ assets, setAssets, userEmail }) => {
         value={search}
         onChange={e => setSearch(e.target.value)}
       />
+      <button style={{marginBottom:16, background:'#1976d2', color:'#fff', border:'none', borderRadius:5, padding:'8px 18px', fontWeight:600, fontSize:'1rem', cursor:'pointer'}} onClick={() => setShowAddModal(true)}>Add Asset</button>
       <table className="asset-table" style={tableStyle}>
+              {showAddModal && (
+                <div style={modalOverlay}>
+                  <div className="asset-modal" style={modalContent}>
+                    <button style={closeBtn} onClick={() => setShowAddModal(false)} title="Close">×</button>
+                    <h2 style={{color:'#1976d2', textAlign:'center', marginBottom:8}}>Add Asset</h2>
+                    <form style={{display:'flex', flexDirection:'column', gap:'12px'}} onSubmit={handleAddSubmit}>
+                      <input
+                        style={searchBarStyle}
+                        name="name"
+                        placeholder="Asset Name"
+                        value={newAsset.name}
+                        onChange={handleAddChange}
+                      />
+                      <input
+                        style={searchBarStyle}
+                        name="quantity"
+                        type="number"
+                        min="1"
+                        placeholder="Quantity"
+                        value={newAsset.quantity}
+                        onChange={handleAddChange}
+                      />
+                      <input
+                        style={searchBarStyle}
+                        name="room"
+                        placeholder="Room"
+                        value={newAsset.room}
+                        onChange={handleAddChange}
+                      />
+                      <input
+                        style={searchBarStyle}
+                        name="rack"
+                        placeholder="Rack"
+                        value={newAsset.rack}
+                        onChange={handleAddChange}
+                      />
+                      {/* Device code is now generated automatically */}
+                      <div style={{color:'#1976d2', fontWeight:500, fontSize:'0.98rem', marginBottom:4}}>
+                        Device code will be generated automatically
+                      </div>
+                      <button style={{padding:'9px 18px', background:'#1976d2', color:'#fff', border:'none', borderRadius:'5px', fontWeight:600, fontSize:'1rem', cursor:'pointer'}} type="submit">Add Asset</button>
+                    </form>
+                  </div>
+                </div>
+              )}
         <thead>
           <tr>
             {/* <th style={thStyle}>ID</th> */}
@@ -281,7 +370,7 @@ const AssetList = ({ assets, setAssets, userEmail }) => {
             <th onClick={() => handleSort('rack')} style={{...thStyle, cursor:'pointer'}}>
               Rack{sortArrow(sortBy==='rack', sortDir)}
             </th>
-            <th style={thStyle}>QR Code</th>
+            <th style={thStyle}>Device Code</th>
             <th style={thStyle}>Actions</th>
           </tr>
         </thead>
@@ -298,39 +387,8 @@ const AssetList = ({ assets, setAssets, userEmail }) => {
               </td>
               <td style={tdStyle} data-label="Room">{asset.room}</td>
               <td style={tdStyle} data-label="Rack">{asset.rack}</td>
-              <td style={tdStyle} data-label="QR Code">
-                <QRCodeCanvas id={`qr-canvas-${asset.id}`} value={asset.id || ''} size={48} level="M" includeMargin={false} />
-                <button
-                  style={{ display: 'block', marginTop: 6, fontSize: 12, padding: '2px 8px', borderRadius: 4, border: '1px solid #1976d2', background: '#fff', color: '#1976d2', cursor: 'pointer' }}
-                  onClick={() => {
-                    // Create a larger QR code using a temporary QRCodeCanvas, then download as PNG
-                    const temp = document.createElement('div');
-                    document.body.appendChild(temp);
-                    const react = window.React || React;
-                    const qr = react.createElement(QRCodeCanvas, {
-                      value: asset.id || '',
-                      size: 256,
-                      level: 'M',
-                      includeMargin: false,
-                      id: `qr-download-${asset.id}`
-                    });
-                    import('react-dom').then(ReactDOM => {
-                      ReactDOM.render(qr, temp);
-                      setTimeout(() => {
-                        const canvas = temp.querySelector('canvas');
-                        if (canvas) {
-                          const url = canvas.toDataURL('image/png');
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = `${asset.name || 'qr'}-${asset.id}.png`;
-                          link.click();
-                        }
-                        ReactDOM.unmountComponentAtNode(temp);
-                        temp.remove();
-                      }, 300);
-                    });
-                  }}
-                >Download</button>
+              <td style={tdStyle} data-label="Device Code">
+                <span style={{ fontWeight: 700, fontSize: '1.2rem', letterSpacing: 2, color: '#1976d2' }}>{asset.id}</span>
               </td>
               <td style={tdStyle} data-label="Actions">
                 <button style={{marginRight:8, background:'#1976d2', color:'#fff', border:'none', borderRadius:4, padding:'4px 10px', cursor:'pointer'}} onClick={() => openEditModal(idx)}>Edit</button>

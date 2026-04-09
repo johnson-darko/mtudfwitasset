@@ -1,83 +1,38 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { Html5Qrcode } from 'html5-qrcode';
 
 const QrScanner = () => {
-  const [scannedId, setScannedId] = useState('');
+  const [deviceCode, setDeviceCode] = useState('');
   const [asset, setAsset] = useState(null);
   const [quantity, setQuantity] = useState('');
   const [message, setMessage] = useState('');
   const [step, setStep] = useState(1);
-  const [scannerRunning, setScannerRunning] = useState(false);
-  const scannerRef = useRef();
-  const html5QrCodeRef = useRef();
 
-  useEffect(() => {
-    if (step !== 1) return;
-    let isMounted = true;
-    const startScanner = async () => {
-      // Wait for the DOM node to exist
-      if (!scannerRef.current) {
-        setTimeout(startScanner, 100);
-        return;
+  // Step 1: Enter 4-digit device code
+  const handleCodeSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    if (!/^[0-9]{4}$/.test(deviceCode)) {
+      setMessage('Enter a valid 4-digit code.');
+      return;
+    }
+    try {
+      const docRef = doc(db, 'assets', deviceCode);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setAsset({ id: docSnap.id, ...docSnap.data() });
+        setStep(2);
+      } else {
+        setMessage('Asset not found.');
       }
-      const qrRegionId = 'qr-reader';
-      html5QrCodeRef.current = new Html5Qrcode(qrRegionId);
-      try {
-        // Always prefer the environment (back) camera on mobile
-        await html5QrCodeRef.current.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: 250 },
-          async (decodedText) => {
-            if (decodedText && step === 1) {
-              setScannedId(decodedText);
-              setStep(2);
-              setScannerRunning(false);
-              await html5QrCodeRef.current.stop().catch(() => {});
-              // Fetch asset info
-              const docRef = doc(db, 'assets', decodedText);
-              const docSnap = await getDoc(docRef);
-              if (docSnap.exists()) {
-                setAsset({ id: docSnap.id, ...docSnap.data() });
-              } else {
-                setMessage('Asset not found.');
-              }
-            }
-          },
-          (errorMessage) => {
-            // Optionally handle scan errors
-          }
-        );
-        setScannerRunning(true);
-      } catch (err) {
-        setMessage('Camera error: ' + err.message);
-      }
-    };
-    startScanner();
-    return () => {
-      isMounted = false;
-      if (html5QrCodeRef.current) {
-        // Always try to stop before clear, and await stop
-        const stopAndClear = async () => {
-          try {
-            await html5QrCodeRef.current.stop();
-          } catch (e) {
-            // ignore if already stopped
-          }
-          try {
-            await html5QrCodeRef.current.clear();
-          } catch (e) {
-            // ignore if already cleared
-          }
-        };
-        stopAndClear();
-      }
-    };
-    // eslint-disable-next-line
-  }, [step]);
+    } catch (err) {
+      setMessage('Error fetching asset: ' + err.message);
+    }
+  };
 
+  // Step 2: Enter quantity
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!quantity || isNaN(quantity) || Number(quantity) < 1) {
@@ -101,9 +56,21 @@ const QrScanner = () => {
 
   return (
     <div style={{ maxWidth: 400, margin: '40px auto', padding: 24, background: '#f4f6f8', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-      <h2 style={{ color: '#1976d2', textAlign: 'center' }}>Scan Device QR Code</h2>
+      <h2 style={{ color: '#1976d2', textAlign: 'center' }}>Enter Device Code</h2>
       {step === 1 && (
-        <div id="qr-reader" ref={scannerRef} style={{ width: '100%', minHeight: 280 }} />
+        <form onSubmit={handleCodeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <input
+            type="text"
+            maxLength={4}
+            pattern="[0-9]{4}"
+            value={deviceCode}
+            onChange={e => setDeviceCode(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="4-digit device code"
+            style={{ padding: 8, borderRadius: 5, border: '1px solid #b0bec5', fontSize: '1rem', textAlign: 'center', letterSpacing: 4 }}
+            autoFocus
+          />
+          <button type="submit" style={{ padding: '9px 18px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '5px', fontWeight: 600, fontSize: '1rem', cursor: 'pointer' }}>Next</button>
+        </form>
       )}
       {step === 2 && asset && (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
