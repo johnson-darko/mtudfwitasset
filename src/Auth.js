@@ -24,7 +24,15 @@ export default function Auth({ onUserChanged }) {
     e.preventDefault();
     setError("");
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      // Immediately create user doc in Firestore with role 'technician'
+      const { doc, setDoc } = await import('firebase/firestore');
+      const { db } = await import('./firebase');
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        email: cred.user.email || '',
+        displayName: cred.user.displayName || '',
+        role: 'technician',
+      }, { merge: true });
     } catch (err) {
       setError(err.message);
     }
@@ -48,7 +56,7 @@ export default function Auth({ onUserChanged }) {
     return (
       <div style={{ marginBottom: 24 }}>
         <div>Signed in as <b>{user.email}</b></div>
-        <button onClick={handleLogout} style={{ marginTop: 8, padding: '6px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Logout</button>
+        <button onClick={handleLogout} style={{ marginTop: 8, padding: '6px 16px', background: '#e53935', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Logout</button>
       </div>
     );
   }

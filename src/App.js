@@ -1,25 +1,64 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { app } from './firebase';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import AssetList from './components/AssetList';
 import QrScanner from './components/QrScanner';
 import Auth from './Auth';
+import ToolMate from './pages/ToolMate';
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
+const LetterSignature = React.lazy(() => import('./LetterSignature'));
 
 
-function App() {
+const SUPERVISOR_EMAILS = ['johnsondarko365@gmail.com'];
+function AssetApp() {
   const [assets, setAssets] = useState([]);
   const [form, setForm] = useState({ name: '', quantity: '', room: '', rack: '' });
   const [showModal, setShowModal] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined); // undefined = loading, null = not logged in
   const [showQrScanner, setShowQrScanner] = useState(false);
+  // Instantly determine role by email
+  const userRole = user && SUPERVISOR_EMAILS.includes(user.email) ? 'supervisor' : 'technician';
 
   // Load assets from Firestore in real time
+  // Wait for Firebase Auth state to be ready
+  useEffect(() => {
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u || null);
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (!user) {
       setAssets([]);
       return;
     }
+    // Ensure user doc exists in users collection
+    import('firebase/firestore').then(async ({ doc, setDoc, getDoc }) => {
+      const userRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(userRef);
+      if (!snap.exists() || !snap.data().role) {
+        await setDoc(userRef, {
+          email: user.email || '',
+          displayName: user.displayName || '',
+          role: 'technician',
+        }, { merge: true });
+      } else {
+        await setDoc(userRef, {
+          email: user.email || '',
+          displayName: user.displayName || '',
+        }, { merge: true });
+      }
+    });
+  }, [user]);
+
+  // Always load assets when user is logged in
+  useEffect(() => {
+    if (!user) return;
     const q = query(collection(db, 'assets'), orderBy('name'));
     const unsub = onSnapshot(q, (snapshot) => {
       setAssets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -140,78 +179,103 @@ function App() {
     justifyContent: 'space-between',
   };
 
+  if (user === undefined) {
+    // Show spinner while loading auth state
+    return (
+      <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}>
+        <div style={{border:'6px solid #e3eafc',borderTop:'6px solid #1976d2',borderRadius:'50%',width:48,height:48,animation:'spin 1s linear infinite'}} />
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <Auth onUserChanged={setUser} />
-      {user ? (
-        <>
-          <h1 style={{textAlign:'center', color:'#1976d2', marginTop:32}}>IT Asset Tracker</h1>
-          <div style={summaryStyle}>
-            <span><b>Total Devices:</b> {totalDevices}</span>
-            <span><b>Devices per Room:</b> {Object.entries(roomCounts).map(([room, count]) => `${room}: ${count}`).join(' | ')}</span>
-          </div>
-          <div style={{display:'flex', justifyContent:'center', margin:'24px 0', gap: '16px'}}>
-            <button style={buttonStyle} onClick={() => setShowModal(true)}>Add Device</button>
-            <button style={{...buttonStyle, background:'#43a047'}} onClick={() => setShowQrScanner(true)}>Scan QR Code</button>
-          </div>
-          {showModal && (
-            <div style={modalOverlay}>
-              <div style={modalContent}>
-                <button style={closeBtn} onClick={() => setShowModal(false)} title="Close">×</button>
-                <h2 style={{color:'#1976d2', textAlign:'center', marginBottom:8}}>Add New Device</h2>
-                <form style={{display:'flex', flexDirection:'column', gap:'12px'}} onSubmit={handleSubmit}>
-                  <input
-                    style={inputStyle}
-                    name="name"
-                    placeholder="Device Name"
-                    value={form.name}
-                    onChange={handleChange}
-                  />
-                  <input
-                    style={inputStyle}
-                    name="quantity"
-                    type="number"
-                    min="1"
-                    placeholder="Quantity"
-                    value={form.quantity}
-                    onChange={handleChange}
-                  />
-                  <input
-                    style={inputStyle}
-                    name="room"
-                    placeholder="Room"
-                    value={form.room}
-                    onChange={handleChange}
-                  />
-                  <input
-                    style={inputStyle}
-                    name="rack"
-                    placeholder="Rack"
-                    value={form.rack}
-                    onChange={handleChange}
-                  />
-                  <button style={buttonStyle} type="submit">Add Device</button>
-                </form>
-              </div>
+    <Router>
+      <div>
+        <nav style={{display:'flex', justifyContent:'center', gap:24, margin:'24px 0'}}>
+          <Link to="/" style={{color:'#1976d2', fontWeight:600, fontSize:'1.1rem', textDecoration:'none'}}>IT Asset Tracker</Link>
+          {/* <Link to="/toolmate" style={{color:'#1976d2', fontWeight:600, fontSize:'1.1rem', textDecoration:'none'}}>ToolMate</Link> */}
+          {/* <Link to="/letter-signature" style={{color:'#1976d2', fontWeight:600, fontSize:'1.1rem', textDecoration:'none'}}>Letter Signature</Link> */}
+        </nav>
+        <Routes>
+          <Route path="/" element={
+            <div>
+              <Auth onUserChanged={setUser} />
+              {user ? (
+                <>
+                  {/* IT Asset Tracker heading removed as requested */}
+                  {/* Summary stats and search bar removed as requested */}
+                  {/* Old Enter Code button removed; only AssetList button remains */}
+                  {showModal && (
+                    <div style={modalOverlay}>
+                      <div style={modalContent}>
+                        <button style={closeBtn} onClick={() => setShowModal(false)} title="Close">×</button>
+                        <h2 style={{color:'#1976d2', textAlign:'center', marginBottom:8}}>Add New Device</h2>
+                        <form style={{display:'flex', flexDirection:'column', gap:'12px'}} onSubmit={handleSubmit}>
+                          <input
+                            style={inputStyle}
+                            name="name"
+                            placeholder="Device Name"
+                            value={form.name}
+                            onChange={handleChange}
+                          />
+                          <input
+                            style={inputStyle}
+                            name="quantity"
+                            type="number"
+                            min="1"
+                            placeholder="Quantity"
+                            value={form.quantity}
+                            onChange={handleChange}
+                          />
+                          <input
+                            style={inputStyle}
+                            name="room"
+                            placeholder="Room"
+                            value={form.room}
+                            onChange={handleChange}
+                          />
+                          <input
+                            style={inputStyle}
+                            name="rack"
+                            placeholder="Rack"
+                            value={form.rack}
+                            onChange={handleChange}
+                          />
+                          <button style={buttonStyle} type="submit">Add Device</button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+                  {showQrScanner && (
+                    <div style={modalOverlay}>
+                      <div style={{...modalContent, minWidth: 'unset', padding: 0}}>
+                        <button style={closeBtn} onClick={() => setShowQrScanner(false)} title="Close">×</button>
+                        <QrScanner />
+                      </div>
+                    </div>
+                  )}
+                  <AssetList assets={assets} setAssets={setAssets} userEmail={user?.email} onEnterCode={() => setShowQrScanner(true)} />
+                </>
+              ) : (
+                <div style={{textAlign:'center', marginTop:40, color:'#1976d2', fontWeight:500}}>
+                  Please log in to access the inventory.
+                </div>
+              )}
             </div>
-          )}
-          {showQrScanner && (
-            <div style={modalOverlay}>
-              <div style={{...modalContent, minWidth: 'unset', padding: 0}}>
-                <button style={closeBtn} onClick={() => setShowQrScanner(false)} title="Close">×</button>
-                <QrScanner />
-              </div>
-            </div>
-          )}
-          <AssetList assets={assets} setAssets={setAssets} userEmail={user?.email} />
-        </>
-      ) : (
-        <div style={{textAlign:'center', marginTop:40, color:'#1976d2', fontWeight:500}}>
-          Please log in to access the inventory.
-        </div>
-      )}
-    </div>
+          } />
+          {/* Redirect /mtudfwitasset to / so it always loads IT Asset Tracker */}
+          <Route path="/mtudfwitasset" element={<AssetList assets={assets} setAssets={setAssets} userEmail={user?.email} onEnterCode={() => setShowQrScanner(true)} />} />
+          <Route path="/toolmate" element={<ToolMate user={user} userRole={userRole} />} />
+          <Route path="/letter-signature" element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <LetterSignature />
+            </Suspense>
+          } />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
-export default App;
+export default AssetApp;

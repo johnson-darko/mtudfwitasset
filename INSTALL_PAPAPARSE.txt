@@ -1,0 +1,2 @@
+// Add this to your project to enable CSV import for assets
+// Run: npm install papaparse

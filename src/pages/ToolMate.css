@@ -1,0 +1,104 @@
+/* Mobile friendly and supervisor styling for ToolMate */
+.toolmate-root {
+  max-width: 600px;
+  margin: 24px auto;
+  padding: 16px;
+  background: #f4f6f8;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+@media (max-width: 700px) {
+  .toolmate-root {
+    max-width: 98vw;
+    padding: 4vw 2vw;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+.toolmate-title {
+  color: #1976d2;
+  text-align: center;
+  font-size: 2.1rem;
+  margin-bottom: 18px;
+}
+.supervisor-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.supervisor-btn {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 7px;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(25,118,210,0.07);
+}
+.export-btn {
+  background: #1976d2;
+  color: #fff;
+}
+.checkin-btn {
+  background: #43a047;
+  color: #fff;
+}
+.approve-btn {
+  background: #43a047;
+  color: #fff;
+  margin-right: 8px;
+}
+.reject-btn {
+  background: #e53935;
+  color: #fff;
+}
+.supervisor-approve-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+.recent-title {
+  margin-top: 36px;
+  color: #1976d2;
+  text-align: center;
+  font-size: 1.2rem;
+}
+.recent-list {
+  margin-top: 12px;
+}
+.recent-entry {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin-bottom: 12px;
+  padding: 14px;
+  color: #1976d2;
+  font-size: 1.05rem;
+  word-break: break-word;
+}
+.recent-entry.pending {
+  border-left: 5px solid #ff9800;
+}
+.entry-time, .entry-note {
+  font-size: 0.97rem;
+  color: #555;
+}
+.pending-label {
+  color: #ff9800;
+  font-weight: 600;
+}
+.no-checkouts {
+  color: #888;
+  text-align: center;
+  padding: 18px 0;
+}
+/* Touch-friendly buttons */
+button, .supervisor-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
