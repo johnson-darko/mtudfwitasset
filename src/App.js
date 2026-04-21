@@ -193,7 +193,7 @@ function AssetApp() {
     <Router>
       <div>
         <nav style={{display:'flex', justifyContent:'center', gap:24, margin:'24px 0'}}>
-          <Link to="/" style={{color:'#1976d2', fontWeight:600, fontSize:'1.1rem', textDecoration:'none'}}>IT Asset Tracker</Link>
+          <Link to="/mtudfwitasset" style={{color:'#1976d2', fontWeight:600, fontSize:'1.1rem', textDecoration:'none'}}>IT Asset Tracker</Link>
           {/* <Link to="/toolmate" style={{color:'#1976d2', fontWeight:600, fontSize:'1.1rem', textDecoration:'none'}}>ToolMate</Link> */}
           {/* <Link to="/letter-signature" style={{color:'#1976d2', fontWeight:600, fontSize:'1.1rem', textDecoration:'none'}}>Letter Signature</Link> */}
         </nav>
@@ -264,8 +264,30 @@ function AssetApp() {
               )}
             </div>
           } />
-          {/* Redirect /mtudfwitasset to / so it always loads IT Asset Tracker */}
-          <Route path="/mtudfwitasset" element={<AssetList assets={assets} setAssets={setAssets} userEmail={user?.email} onEnterCode={() => setShowQrScanner(true)} />} />
+          {/* Protect /mtudfwitasset: show login if not logged in, else show AssetList with signed-in info */}
+          <Route path="/mtudfwitasset" element={
+            user ? (
+              <div>
+                {/* Signed in as and Logout button (copied from Auth.js) */}
+                <div style={{ marginBottom: 24 }}>
+                  <div>Signed in as <b>{user.email}</b></div>
+                  <button
+                    onClick={async () => {
+                      const { getAuth, signOut } = await import('firebase/auth');
+                      const { app } = await import('./firebase');
+                      await signOut(getAuth(app));
+                    }}
+                    style={{ marginTop: 8, padding: '6px 16px', background: '#e53935', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                  >Logout</button>
+                </div>
+                <AssetList assets={assets} setAssets={setAssets} userEmail={user?.email} onEnterCode={() => setShowQrScanner(true)} />
+              </div>
+            ) : (
+              <div style={{ maxWidth: 320, margin: '0 auto', marginBottom: 24, padding: 16, background: '#f4f6f8', borderRadius: 8 }}>
+                <Auth onUserChanged={setUser} />
+              </div>
+            )
+          } />
           <Route path="/toolmate" element={<ToolMate user={user} userRole={userRole} />} />
           <Route path="/letter-signature" element={
             <Suspense fallback={<div>Loading...</div>}>
