@@ -1,3 +1,38 @@
+// Extract first and last name from fullName according to custom rules
+// Capitalize each word: first letter uppercase, rest lowercase
+function capitalizeWords(str) {
+  return (str || '').replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function extractFirstAndLastName(fullName) {
+  if (!fullName) return { firstName: '', lastName: '' };
+  const trimmed = fullName.trim();
+  if (trimmed.includes(',')) {
+    // e.g. "Johannsen, Alexander" or "MONTANEZ SANTOS, Hugo"
+    const [last, ...firstParts] = trimmed.split(',');
+    return {
+      lastName: capitalizeWords(last.trim()),
+      firstName: capitalizeWords(firstParts.join(',').trim()),
+    };
+  }
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 2) {
+    // e.g. "Wesley Nortman" => last: Wesley, first: Nortman
+    return {
+      lastName: capitalizeWords(parts[0]),
+      firstName: capitalizeWords(parts[1]),
+    };
+  }
+  if (parts.length > 2) {
+    // e.g. "DARKO Johnson Kwabena" => last: DARKO, first: Johnson Kwabena
+    return {
+      lastName: capitalizeWords(parts[0]),
+      firstName: capitalizeWords(parts.slice(1).join(' ')),
+    };
+  }
+  // fallback: treat all as last name
+  return { lastName: capitalizeWords(trimmed), firstName: '' };
+}
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -114,6 +149,28 @@ const badgeStyle = (qty) => ({
 
 const ADMIN_EMAIL = "johnsondarko365@gmail.com";
 const AssetList = ({ assets, setAssets, userEmail, onEnterCode }) => {
+      // Store IT Asset users with valid first and last names in localStorage whenever assets change
+      React.useEffect(() => {
+        if (Array.isArray(assets)) {
+          const assetUsers = assets
+            .map(asset => {
+              const { firstName, lastName } = extractFirstAndLastName(asset.fullName);
+              return {
+                firstName,
+                lastName,
+                fullName: asset.fullName,
+                ykdNumber: asset.ykdNumber,
+                id: asset.id || asset.name || '',
+              };
+            })
+            .filter(u => u.firstName && u.lastName); // Only those with both names
+          try {
+            localStorage.setItem('itAssetUsers', JSON.stringify(assetUsers));
+          } catch (e) {
+            // Ignore storage errors
+          }
+        }
+      }, [assets]);
     // Status filter for search bar
     const [statusFilter, setStatusFilter] = useState('');
     const [showStatusDropdown, setShowStatusDropdown] = useState(false);
@@ -831,6 +888,8 @@ const AssetList = ({ assets, setAssets, userEmail, onEnterCode }) => {
             <th style={thStyle}>Status</th>
             <th style={thStyle}>Note</th>
             <th style={thStyle}>Full Name</th>
+            <th style={thStyle}>First Name</th>
+            <th style={thStyle}>Last Name</th>
             <th style={thStyle}>YKD Number</th>
             <th style={thStyle}>Actions</th>
           </tr>
@@ -869,6 +928,8 @@ const AssetList = ({ assets, setAssets, userEmail, onEnterCode }) => {
               <td style={tdStyle} data-label="Status">{asset.status}{asset.note === 'old' ? ' (old)' : ''}</td>
               <td style={tdStyle} data-label="Note">{asset.note}</td>
               <td style={tdStyle} data-label="Full Name">{asset.fullName}</td>
+              <td style={tdStyle} data-label="First Name">{asset.firstName || (asset.fullName ? extractFirstAndLastName(asset.fullName).firstName : '')}</td>
+              <td style={tdStyle} data-label="Last Name">{asset.lastName || (asset.fullName ? extractFirstAndLastName(asset.fullName).lastName : '')}</td>
               <td style={tdStyle} data-label="YKD Number">{asset.ykdNumber ? `YKD${asset.ykdNumber.toString().replace(/^YKD/i, '')}` : ''}</td>
               <td style={tdStyle} data-label="Actions">
                 {showActionsIdx === idx ? (

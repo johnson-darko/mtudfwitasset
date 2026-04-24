@@ -1,3 +1,36 @@
+# IT Asset User Linking Logic
+
+When you click the "Link IT Asset Users" button in the user table:
+
+1. **Add:**
+  - Any user with a first and last name in the IT Asset table (not already present in the user table) will be added automatically.
+  - These users are marked with `source: "itAsset"` and are always capitalized (e.g., "Sikander, Farhad").
+
+2. **Remove:**
+  - If a user was previously added from IT Asset (has `source: "itAsset"`) but their name is no longer present in the IT Asset table, they will be automatically removed from the user table.
+  - Imported or manually added users are never removed by this process.
+
+This keeps the user table in sync with IT Asset assignments, while protecting imported/manual users from accidental removal.
+# Name Extraction Logic for First Name and Last Name
+
+When extracting first and last names from a full name (for IT Asset and related tables), use the following rules:
+
+1. **If the full name contains a comma** (e.g., `Johannsen, Alexander` or `MONTANEZ SANTOS, Hugo`):
+  - The part before the comma is the **Last Name**.
+  - The part after the comma is the **First Name** (even if it contains multiple words).
+
+2. **If the full name does not contain a comma and has exactly two words** (e.g., `Wesley Nortman`):
+  - The first word is the **Last Name**.
+  - The second word is the **First Name**.
+
+3. **If the full name does not contain a comma and has more than two words** (e.g., `DARKO Johnson Kwabena`):
+  - The first word is the **Last Name**.
+  - All remaining words are the **First Name**.
+
+4. **If the full name is a single word**:
+  - Treat it as the **Last Name**; the **First Name** is left blank.
+
+This logic ensures consistent extraction of first and last names for all user and asset records.
 # ToolMate Asset Management User Guide
 
 ## Overview

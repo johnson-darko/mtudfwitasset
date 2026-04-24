@@ -1,14 +1,15 @@
-
 import React, { useState, useEffect, Suspense } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { app } from './firebase';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import AssetList from './components/AssetList';
+import UserForm from './components/UserForm';
 import QrScanner from './components/QrScanner';
 import Auth from './Auth';
 import ToolMate from './pages/ToolMate';
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
+import Systems from './components/Systems';
 const LetterSignature = React.lazy(() => import('./LetterSignature'));
 
 
@@ -294,6 +295,8 @@ function AssetApp() {
               <LetterSignature />
             </Suspense>
           } />
+          <Route path="/userform" element={<UserForm userEmail={user?.email} />} />
+          <Route path="/systems" element={<Systems />} />
         </Routes>
       </div>
     </Router>

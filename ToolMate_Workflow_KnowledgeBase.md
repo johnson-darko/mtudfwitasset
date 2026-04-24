@@ -35,3 +35,9 @@ WE DONT WANT THIS TO HAPPEN BECAUSE WE HARD CODED WHO TO BE A SUPERVISOR; SO USE
 
 
 also
+
+
+Now good. so now as we have the first name and last name and then it can also make the table, I want same first name and last name to do something for me, is that possible, by having another button which would have it own table but gets users the first and last name from the userform table for it own table with column headers
+
+
+System-Name, DNS-Name, Status,Domain,Lastname,Firstname,Department, Building, Room, System Performance Group, Operating System,Mandant,Serialnumber
